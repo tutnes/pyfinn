@@ -2,11 +2,13 @@ import json
 import re
 import sys
 from datetime import datetime
+import time
 from urllib import parse
+from urllib.parse import urlparse
+from urllib.parse import parse_qs
 
 from fake_useragent import UserAgent
 from requests_html import HTMLSession
-
 
 session = HTMLSession()
 ua = UserAgent()
@@ -58,6 +60,21 @@ def _calc_price(ad_data):
     return ad_data['Totalpris'] - debt - cost
 
 
+def scrape_list(url):
+    r = session.get(url, headers={'user-agent': ua.random})
+    r.raise_for_status()
+    links = r.html.absolute_links
+    ads = []
+    for link in links:
+        if 'realestate/homes/ad.html' in link:
+            parsed_url = urlparse(link)
+            finnkode = parse_qs(parsed_url.query)['finnkode'][0]
+            print(f'Scraping finnkode {finnkode}')
+            ads.append(scrape_ad(finnkode))
+            time.sleep(1)
+    to_json(input=ads, output_path='./ads.json')
+
+
 def scrape_ad(finnkode):
     url = 'https://www.finn.no/realestate/homes/ad.html?finnkode={code}'.format(code=finnkode)
     r = session.get(url, headers={'user-agent': ua.random})
@@ -88,10 +105,18 @@ def scrape_ad(finnkode):
     return ad_data
 
 
-if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('Invalid number of arguments.\n\nUsage:\n$ python finn.py FINNKODE')
-        exit(1)
+def to_json(**kwargs):
+    input = kwargs.get('input')
+    output_path = kwargs.get('output_path')
+    with open(output_path, 'w') as outfile:
+        json.dump(input, outfile, indent=2)
 
-    ad = scrape_ad(sys.argv[1])
-    print(json.dumps(ad, indent=2, ensure_ascii=False))
+
+if __name__ == '__main__':
+    # if len(sys.argv) != 2:
+    #    print('Invalid number of arguments.\n\nUsage:\n$ python finn.py FINNKODE')
+    #    exit(1)
+    # print(sys.argv[2])
+    scrape_list(sys.argv[1])
+    # ad = scrape_ad(sys.argv[1])
+    # print(json.dumps(ad, indent=2, ensure_ascii=False))
