@@ -72,7 +72,7 @@ def scrape_list(url):
             print(f'Scraping finnkode {finnkode}')
             ads.append(scrape_ad(finnkode))
             time.sleep(1)
-    to_json(input=ads, output_path='./ads.json')
+    to_json(input=ads, output_path='./tmp/ads.json')
 
 
 def scrape_ad(finnkode):
